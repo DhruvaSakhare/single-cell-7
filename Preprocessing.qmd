@@ -7,5 +7,54 @@ editor: visual
 Load and preprocess data
 
 ```{r}
+library(Seurat)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(BiocSingular)
+library(scDblFinder)
+library(SingleCellExperiment)
+library(scater)
+```
+
+```{r}
+pbmc.MTB <- readRDS(url("https://datasets.cellxgene.cziscience.com/ac9c13da-7134-4d09-8086-d0933cbdba41.rds"))
+```
+
+```{r}
+pbmc.MTB@meta.data
+```
+
+```{r}
+#Check a specific variable in the metadata
+unique(pbmc.MTB$donor_id)
+```
+
+```{r}
+pbmc.MTBa <- subset(pbmc.MTB, pbmc.MTB$donor_id == "RA09_1_C_M")
+```
+
+```{r}
+pbmc.MTB_filtered <- subset(pbmc.MTB, subset = donor_id %in% "RA09_1_C_M")
+```
+
+```{r}
+unique(pbmc.MTB_filtered$donor_id)
+```
+
+```{r}
+unique(pbmc.MTB_filtered$disease)
+```
+
+```{r}
+control_samples <- unique(pbmc.MTB$donor_id[pbmc.MTB$disease == "normal"])
+disease_samples <- unique(pbmc.MTB$donor_id[pbmc.MTB$disease == "rheumatoid arthritis"])
+
+
+set.seed(123) 
+selected_control_samples <- sample(control_samples, 6)
+selected_disease_samples <- sample(disease_samples, 6)
+
+pbmc.MTB_filtered <- subset(pbmc.MTB, subset = donor_id %in% selected_samples)
 
 ```

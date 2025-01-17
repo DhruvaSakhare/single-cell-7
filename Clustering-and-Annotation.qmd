@@ -1,0 +1,141 @@
+---
+title: "Clustering and Annotation"
+format: html
+editor: visual
+---
+
+### Libraries:
+
+```{r}
+suppressPackageStartupMessages({
+library(Seurat)
+library(SeuratData)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(harmony)
+library(tidyr)
+library(multtest)
+library(metap)
+library(tibble)
+library(clustree)
+library(future)
+library(SingleR)
+})
+```
+
+### Data Load:
+
+```{r}
+# Read integrated RDS
+pbmc <- readRDS()
+```
+
+### Clustering both integration methods:
+
+```{r}
+# Clustering for harmony method
+pbmc.MTB.harmony <- FindNeighbors(pbmc.MTB, dims = 1:18, reduction = "Harmony_Integration")
+pbmc.MTB.harmony <- FindClusters(pbmc.MTB.harmony, resolution = c(0.3, 0.5, 0.7))
+
+# Clustering for cannonical correlation analysis method
+pbmc.MTB.cca <- FindNeighbors(pbmc.MTB, dims = 1:18, reduction = "CCA_Integration")
+pbmc.MTB.cca <- FindClusters(pbmc.MTB.cca, resolution = c(0.3, 0.5, 0.7))
+```
+
+### Visualize the diffrent methods to decide on the best:
+
+```{r}
+# Setting the Idents for visualization
+Idents(pbmc.MTB.harmony) <- "RNA_snn_res.0.3"
+Idents(pbmc.MTB.cca) <- "RNA_snn_res.0.3"
+
+# Visualizing
+DimPlot(pbmc.MTB.harmony, reduction = "umap_harmony", split.by = "")
+DimPlot(pbmc.MTB.cca, reduction = "umap_cca", split.by = "")
+```
+
+### Making clustertree to check for good resolutions:
+
+```{r}
+# Clust tree to check for good resolutions
+clustree(pbmc.MTB.cca, prefix = "RNA_snn_res.")
+```
+
+In the tree we want like to see that our clusters are conversed across the resolution. This will give the clusterings a biological meaning. we see this in most byt in some there is some branching depending on resolution.
+
+### Clustering by biomarkers:
+
+```{r}
+# List of Biomarkers obtained from litterature
+Celltype_markers <- list(
+  Celltype_1 = "",
+  Celltype_2 = ""
+
+)
+
+# Loop over each element in the list and plot a violin plot
+for (cell_name in names(Celltype_markers)) {
+  p <- VlnPlot(pbmc.MTB.cca, features = Celltype_markers[[cell_name]])
+  print(p)
+}
+```
+
+### Assign cell type from violin plots:
+
+```{r}
+# Manually assigning cell types
+pbmc.MTB.cca <- RenameIdents(object = pbmc.MTB.cca, 
+                                "0" = "0",
+                                "1" = "1",
+                                "2" = "2",
+                                "3" = "3",
+                                "4" = "4",
+                                "5" = "5",
+                                "6" = "6",
+                                "7" = "7",
+                                "8" = "8",
+                                "9" = "9",
+                                "10"= "10")
+```
+
+### Annotation with gene profile:
+
+here we can look at each clusters gene profile and find a correlation between this and what cell type it might be.
+
+```{r}
+cluster7_conserved_markers <- FindConservedMarkers(pbmc.MTB.cca,
+                              ident.1 = 7,
+                              grouping.var = "dieases",
+                              only.pos = TRUE,min.pct = 0.25,  min.diff.pct = 0.25,
+                      logfc.threshold = 0.25)
+```
+
+We can then annotate again based off of this:
+
+```{r}
+# Manually assigning cell types
+pbmc.MTB.cca <- RenameIdents(object = pbmc.MTB.cca, 
+                                "0" = "0",
+                                "1" = "1",
+                                "2" = "2",
+                                "3" = "3",
+                                "4" = "4",
+                                "5" = "5",
+                                "6" = "6",
+                                "7" = "7",
+                                "8" = "8",
+                                "9" = "9",
+                                "10"= "10")
+```
+
+### Visualize the final annotated data:
+
+```{r}
+# visualize data
+clusters <- DimPlot(pbmc.MTB.cca, reduction = 'umap_cca', label = TRUE)
+timepoint <- DimPlot(pbmc.MTB.cca, reduction = 'umap_cca', group.by = 'timepoint')
+celltype <- DimPlot(pbmc.MTB.cca, reduction = 'umap_cca', group.by = 'cell_type_manual')
+
+timepoint|clusters
+```

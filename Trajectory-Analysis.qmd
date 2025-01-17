@@ -4,8 +4,85 @@ format: html
 editor: visual
 ---
 
+Here we will analyse a subset of x cells. We will look at trajectories, between RA and healthy, to see if any apparent differences in gene expression or general trajectory.
+
 ### Libraries:
 
 ```{r}
+suppressPackageStartupMessages({
+library(slingshot)
+library(Seurat)
+library(SingleCellExperiment)
+library(tradeSeq)
+library(dplyr)
+library(scater)
+library(TSCAN)
+library(biomaRt)
+})
+```
 
+### Data Load:
+
+```{r}
+pbmc.MTB <- readRDS(url("https://datasets.cellxgene.cziscience.com/ac9c13da-7134-4d09-8086-d0933cbdba41.rds"))
+```
+
+### Subsetting:
+
+```{r}
+
+CD8T_RA <- subset(pbmc.MTB, (rough_annot == "CD4Tcells" & disease == "rheumatoid arthritis"))
+
+CD8T_norm <- subset(pbmc.MTB, (rough_annot == "CD4Tcells" & disease == "normal"))
+```
+
+### Prepossessing:
+
+```{r}
+CD8T_RA <- FindVariableFeatures(CD8T_RA)
+CD8T_RA <- ScaleData(CD8T_RA)
+CD8T_RA <- RunPCA(CD8T_RA)
+
+CD8T_norm <- FindVariableFeatures(CD8T_norm)
+CD8T_norm <- ScaleData(CD8T_norm)
+CD8T_norm <- RunPCA(CD8T_norm)
+
+ElbowPlot(CD8T_norm)
+ElbowPlot(CD8T_RA)
+```
+
+### Reclustering and visualizing:
+
+```{r}
+# finds neighbors on all PC's
+CD8T_RA <- FindNeighbors(CD8T_RA, dims = 1:9)
+# Clusters the PC's with diffrent resolutions
+CD8T_RA <- FindClusters(CD8T_RA, resolution = 0.3)
+
+# finds neighbors on all PC's
+CD8T_norm <- FindNeighbors(CD8T_norm, dims = 1:9)
+# Clusters the PC's with diffrent resolutions
+CD8T_norm <- FindClusters(CD8T_norm, resolution = 0.3)
+
+CD8T_norm <- RunUMAP(CD8T_norm, dims = 1:9, reduction = "pca", reduction.name = "umap")
+CD8T_RA <- RunUMAP(CD8T_RA, dims = 1:9, reduction = "pca", reduction.name = "umap")
+
+DimPlot(CD8T_norm, reduction = "umap", group.by = "RNA_snn_res.0.3", label = TRUE) +
+  ggtitle("CD8T_norm 0.3 Rez")
+DimPlot(CD8T_norm, reduction = "umap", group.by = "fine_annot", label = TRUE) +
+  ggtitle("CD8T_RA fine annotation")
+```
+
+### Looking at biomarkers across clusters:
+
+```{r}
+#| eval: false
+
+# not run until gene names has been changed
+FeaturePlot(CD8T,
+            reduction = "umap",
+            features = c("CCR7", "SELL", "CD27", "CD28"),
+            order = TRUE,
+            min.cutoff = 'q10',
+            label = TRUE)
 ```

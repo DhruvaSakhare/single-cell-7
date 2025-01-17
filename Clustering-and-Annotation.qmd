@@ -28,7 +28,7 @@ library(SingleR)
 
 ```{r}
 # Read integrated RDS
-pbmc <- readRDS()
+pbmc.MTB <- readRDS(url("https://datasets.cellxgene.cziscience.com/ac9c13da-7134-4d09-8086-d0933cbdba41.rds"))
 ```
 
 ### Clustering both integration methods:
